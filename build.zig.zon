@@ -1,0 +1,12 @@
+.{
+    .name = .zvm,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.0",
+    .fingerprint = 0xec41f701c1f0c04a,
+    .paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+    },
+    .dependencies = .{},
+}
