@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
     branches: [main, master]
 
@@ -38,18 +39,9 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-linux
-          - os: ubuntu-latest
-            target: aarch64-linux
-          - os: macos-latest
-            target: x86_64-macos
-          - os: macos-latest
-            target: aarch64-macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -58,19 +50,44 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: Build release
+      - name: Cross-compile for all targets
         run: |
-          zig build -Doptimize=ReleaseSafe -Dtarget=${{ matrix.target }}
-          tar -czf zvm-${{ matrix.target }}.tar.gz -C zig-out/bin zvm zvm-proxy
+          set -eu
+          mkdir -p dist
+          for target in \
+            x86_64-linux \
+            aarch64-linux \
+            riscv64-linux \
+            x86_64-macos \
+            aarch64-macos \
+            x86_64-windows \
+            aarch64-windows; do
+            echo "::group::Building $target"
+            zig build -Doptimize=ReleaseSafe -Dtarget=$target
+            case "$target" in
+              *windows*)
+                ( cd zig-out/bin && zip -q "$GITHUB_WORKSPACE/dist/zvm-$target.zip" zvm.exe zvm-proxy.exe )
+                ;;
+              *)
+                tar -czf "dist/zvm-$target.tar.gz" -C zig-out/bin zvm zvm-proxy
+                ;;
+            esac
+            rm -rf zig-out
+            echo "::endgroup::"
+          done
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zvm-${{ matrix.target }}
-          path: zvm-${{ matrix.target }}.tar.gz
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: zvm-${{ matrix.target }}.tar.gz
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/SHA256SUMS
+          generate_release_notes: true
+          fail_on_unmatched_files: true
