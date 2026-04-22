@@ -36,27 +36,41 @@ SHA256 + minisign verification, ZLS integration, and shell completions.
 
 ## Quick start
 
+No Zig toolchain required -- the installer downloads a prebuilt binary for
+your platform from GitHub Releases:
+
 ```sh
-# Build from source (requires Zig 0.15+)
+curl -fsSL https://raw.githubusercontent.com/Turrain/zvm/main/install.sh | sh
+```
+
+Or clone and run locally:
+
+```sh
 git clone https://github.com/Turrain/zvm.git
 cd zvm
-zig build -Doptimize=ReleaseSafe
+./install.sh
+```
 
-# Install
-cp zig-out/bin/zvm ~/.local/bin/   # or anywhere on your PATH
-mkdir -p ~/.zvm
+The installer:
+1. Detects your platform (`x86_64-linux`, `aarch64-macos`, etc.).
+2. Downloads the matching asset from the latest GitHub Release.
+3. Verifies the SHA256 against `SHA256SUMS`.
+4. Falls back to `zig build -Doptimize=ReleaseSafe` if Zig is available and no
+   prebuilt exists.
 
-# Add to your shell profile
-export PATH="$HOME/.zvm/bin:$PATH"
+After install, restart your shell (or `source` your profile) and run:
 
-# Install Zig
+```sh
 zvm install stable
 ```
 
-Or use the bootstrap script:
+### Manual install from source (requires Zig 0.15+)
 
 ```sh
-./install.sh
+git clone https://github.com/Turrain/zvm.git
+cd zvm
+zig build -Doptimize=ReleaseSafe
+cp zig-out/bin/zvm ~/.local/bin/   # or anywhere on your PATH
 ```
 
 ## Usage
